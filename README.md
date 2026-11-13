@@ -3,7 +3,13 @@
 Programa de desktop (Windows) que transforma um **tema** em um **vídeo pronto** — roteiro, narração, imagens, legendas,
 música — e já gera **3 thumbnails** em laranja e preto. Interface com tema **escuro** (laranja + preto) e **claro** (laranja + branco).
 
-## Começar (sem gastar nada)
+## Baixar (Windows)
+
+Vá em **[Releases](../../releases/latest)** e baixe `ForjaVideo.exe` (ou `ForjaVideo-pasta.zip`, se o `.exe` não abrir).
+Detalhes sobre o aviso do SmartScreen estão na própria página da release. Se algo falhar, o programa mostra o erro
+e salva os detalhes em `C:\Users\SEU_USUARIO\.forjavideo\erro.log`.
+
+## Começar pelo código (sem gastar nada)
 
 1. Instale o Python 3.10+ (python.org, marque *Add to PATH*).
 2. No terminal, dentro desta pasta:
@@ -13,8 +19,8 @@ música — e já gera **3 thumbnails** em laranja e preto. Interface com tema *
    ```
 3. Digite o tema, clique em **Gerar roteiro**, revise o texto e clique em **PRODUZIR VÍDEO**.
 
-Para virar `.exe`: dê duplo clique em `build_exe.bat` (gera `dist\ForjaVideo.exe`) ou rode o workflow
-**Gerar ForjaVideo.exe** na aba *Actions* do GitHub.
+Para gerar o programa você mesmo: dê duplo clique em `build_exe.bat` (gera `dist\ForjaVideo\ForjaVideo.exe`) ou rode o workflow
+**Gerar ForjaVideo (Windows)** na aba *Actions* do GitHub — ele também testa o programa abrindo a janela de verdade.
 
 ## O que é grátis e o que é opcional
 

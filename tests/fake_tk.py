@@ -16,7 +16,7 @@ OPTS = {
  "Progressbar": {"variable","maximum","style","orient","length","mode"},
  "Scrollbar": {"orient","command","style"},
 }
-METHODS = {"configure","config","cget","grid","pack","place","grid_propagate","pack_propagate","columnconfigure","rowconfigure","bind","bind_all","unbind_all","after","winfo_children","winfo_exists","destroy","tkraise","insert","delete","get","see","create_window","itemconfigure","bbox","yview","yview_scroll","set","title","geometry","minsize","protocol","mainloop","grid_remove","focus_set","update_idletasks"}
+METHODS = {"configure","config","cget","grid","pack","place","grid_propagate","pack_propagate","columnconfigure","rowconfigure","bind","bind_all","unbind_all","after","winfo_children","winfo_exists","destroy","tkraise","insert","delete","get","see","create_window","itemconfigure","bbox","yview","yview_scroll","set","title","geometry","minsize","protocol","mainloop","grid_remove","focus_set","update_idletasks","update"}
 
 class TclError(Exception): pass
 

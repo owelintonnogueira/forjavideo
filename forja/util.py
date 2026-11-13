@@ -87,7 +87,7 @@ def _popen_flags() -> dict:
 def run_ffmpeg(args: list[str], cancel: CancelToken | None = None) -> None:
     cmd = [ffmpeg_exe(), "-y", "-hide_banner", "-loglevel", "error", *args]
     proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **_popen_flags()
+        cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **_popen_flags()
     )
     if cancel:
         cancel._procs.append(proc)
@@ -105,7 +105,9 @@ def run_ffmpeg(args: list[str], cancel: CancelToken | None = None) -> None:
 def audio_duration(path: str | Path) -> float:
     """Duração do áudio em segundos (usa o ffmpeg, sem precisar do ffprobe)."""
     cmd = [ffmpeg_exe(), "-hide_banner", "-i", str(path)]
-    proc = subprocess.run(cmd, capture_output=True, **_popen_flags())
+    proc = subprocess.run(
+        cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **_popen_flags()
+    )
     txt = proc.stderr.decode("utf-8", "replace")
     m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", txt)
     if not m:

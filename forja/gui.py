@@ -18,6 +18,7 @@ from .theme import THEMES
 from .util import CancelToken, Cancelled
 
 FONT = "Segoe UI" if os.name == "nt" else "Helvetica"
+SILENT = False  # True no autoteste: não abre caixas de mensagem que travariam o teste
 
 FORMATS = {"horizontal": "Horizontal 16:9 (YouTube)", "vertical": "Vertical 9:16 (Shorts / Reels / TikTok)"}
 RESOLUTIONS = {"720p": "720p (mais rápido)", "1080p": "1080p (melhor qualidade)"}
@@ -72,6 +73,7 @@ class App(tk.Tk):
         self.nav_buttons: dict[str, tk.Button] = {}
         self.pages: dict[str, tk.Frame] = {}
 
+        self.report_callback_exception = self._on_tk_error
         self._init_style()
         self._build()
         self._load_vars()
@@ -79,6 +81,20 @@ class App(tk.Tk):
         self.show_page("create")
         self.after(120, self._poll)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_tk_error(self, exc, val, tb) -> None:
+        import traceback
+
+        text = "".join(traceback.format_exception(exc, val, tb))
+        try:
+            config.CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+            with open(config.CONFIG_DIR / "erro.log", "a", encoding="utf-8") as f:
+                f.write(time.strftime("[%Y-%m-%d %H:%M:%S]\n") + text + "\n")
+        except Exception:
+            pass
+        self.last_tk_error = text
+        if not SILENT:
+            messagebox.showerror("Erro inesperado", f"{val}\n\nDetalhes em: {config.CONFIG_DIR / 'erro.log'}")
 
     # ================================================================== estilo / tema
     def _init_style(self) -> None:
