@@ -69,6 +69,7 @@ class App(tk.Tk):
         self.worker: threading.Thread | None = None
         self.cancel_token: CancelToken | None = None
         self.last_result: pipeline.Result | None = None
+        self.last_tk_error: str = ""
         self.v: dict[str, tk.Variable] = {}
         self.nav_buttons: dict[str, tk.Button] = {}
         self.pages: dict[str, tk.Frame] = {}

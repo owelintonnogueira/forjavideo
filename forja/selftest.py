@@ -22,6 +22,29 @@ E esta é a última cena, curta e direta.
 """
 
 
+def wait_for_production(app, previous, boxes: list, timeout: float = 240.0):
+    """Espera a produção terminar olhando o ESTADO do app (o próprio app também consome a fila de mensagens)."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        app.update()
+        try:
+            while True:
+                kind, data = app.q.get_nowait()
+                app._handle(kind, data)
+        except queue.Empty:
+            pass
+        if app.worker is None and app.last_result is not None and app.last_result is not previous:
+            return app.last_result
+        if app.v["status"].get() == "Erro.":
+            raise RuntimeError("produção falhou: " + " | ".join(boxes) + " | " + app.log_box.get("1.0", "end")[-800:])
+        time.sleep(0.1)
+    alive = app.worker.is_alive() if app.worker else None
+    raise RuntimeError(
+        f"a produção não terminou em {int(timeout)}s (worker vivo={alive}, status={app.v['status'].get()!r}) | "
+        + app.log_box.get("1.0", "end")[-800:]
+    )
+
+
 def run_selftest(outdir: str) -> int:
     out = Path(outdir).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -90,25 +113,7 @@ def run_selftest(outdir: str) -> int:
         app.script_box.delete("1.0", "end")
         app.script_box.insert("1.0", SCRIPT)
         app.on_produce()
-        t0 = time.time()
-        result = None
-        while time.time() - t0 < 240:
-            app.update()
-            try:
-                while True:
-                    kind, data = app.q.get_nowait()
-                    if kind == "done":
-                        result = data
-                    elif kind in ("error", "cancelled"):
-                        raise RuntimeError(f"produção falhou: {data}")
-                    app._handle(kind, data)
-            except queue.Empty:
-                pass
-            if result is not None:
-                break
-            time.sleep(0.1)
-        if result is None:
-            raise RuntimeError("a produção não terminou em 4 minutos")
+        result = wait_for_production(app, None, boxes)
         app.update()
         dur = util.audio_duration(result.video)
         size = result.video.stat().st_size
@@ -125,20 +130,7 @@ def run_selftest(outdir: str) -> int:
         # formato vertical
         v["format"].set(gui.FORMATS["vertical"])
         app.on_produce()
-        result = None
-        t0 = time.time()
-        while time.time() - t0 < 240 and result is None:
-            app.update()
-            while not app.q.empty():
-                kind, data = app.q.get_nowait()
-                if kind in ("error", "cancelled"):
-                    raise RuntimeError(f"produção vertical falhou: {data}")
-                if kind == "done":
-                    result = data
-                app._handle(kind, data)
-            time.sleep(0.1)
-        if result is None:
-            raise RuntimeError("a produção vertical não terminou")
+        result = wait_for_production(app, result, boxes)
         log(f"vídeo vertical ok: {result.video.name}")
 
         v["tt_text"].set("TESTE")

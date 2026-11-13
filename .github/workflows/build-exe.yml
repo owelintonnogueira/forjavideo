@@ -63,6 +63,27 @@ jobs:
           "codigo de saida: $($p.ExitCode)"
           if ($p.ExitCode -ne 0) { exit 1 }
 
+      - name: Publicar capturas de tela do autoteste (branch capturas)
+        if: always() && github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $cap = Join-Path $env:RUNNER_TEMP "cap"
+          Remove-Item -Recurse -Force $cap -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force $cap | Out-Null
+          foreach ($d in "selftest_pasta","selftest_exe") {
+            if (Test-Path $d) {
+              Get-ChildItem $d -File | ForEach-Object { Copy-Item $_.FullName (Join-Path $cap ("$d-" + $_.Name)) }
+            }
+          }
+          Set-Location $cap
+          git init -b capturas
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add .
+          git commit -m "Capturas do autoteste (execucao ${{ github.run_id }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" capturas
+
       - name: Empacotar
         shell: pwsh
         run: |
