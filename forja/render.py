@@ -265,13 +265,29 @@ def render_scene(
         f"aresample=48000,apad=pad_dur={TAIL},aformat=channel_layouts=stereo[aout]"
     )
 
+    graph = ";\n".join(fc)
     script = work / f"filtro_{idx:03d}.txt"  # em arquivo: a linha de comando do Windows tem limite de tamanho
-    script.write_text(";\n".join(fc), encoding="utf-8")
+    script.write_text(graph, encoding="utf-8")
+    # o nome da opção mudou entre versões do ffmpeg: tenta a nova, a antiga e, por fim, o texto direto
+    variants = [("-/filter_complex", str(script)), ("-filter_complex_script", str(script)), ("-filter_complex", graph)]
+    last_err: Exception | None = None
+    for opt, val in variants:
+        try:
+            _encode_scene(inputs, opt, val, dur, out, cancel)
+            return dur
+        except RuntimeError as e:
+            if "nrecognized option" not in str(e) and "Option not found" not in str(e):
+                raise
+            last_err = e
+    raise last_err  # type: ignore[misc]
+
+
+def _encode_scene(inputs, opt, val, dur, out, cancel) -> None:
     run_ffmpeg(
         [
             *inputs,
-            "-filter_complex_script",
-            str(script),
+            opt,
+            val,
             "-map",
             "[vout]",
             "-map",
@@ -304,7 +320,6 @@ def render_scene(
         ],
         cancel,
     )
-    return dur
 
 
 # ------------------------------------------------------------------ montagem final
