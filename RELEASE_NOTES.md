@@ -1,3 +1,9 @@
+## Novidades da v1.0.1
+- Edição bem mais dinâmica: várias imagens por cena, zoom/movimento, transições e opção **Ritmo da edição** (Calmo / Dinâmico / Acelerado).
+- Legenda sincronizada palavra por palavra (palavra falada em laranja); silêncios cortados.
+- Thumbnails agora seguem o formato escolhido (vertical = 1080×1920).
+- Botão **Abrir vídeo**, correção de cor do vídeo e do texto do roteiro automático (parênteses da Wikipédia).
+
 ## Como instalar (Windows 10/11)
 
 **Opção A — mais simples:** baixe `ForjaVideo.exe` e dê duplo clique.

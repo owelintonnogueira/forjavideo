@@ -125,19 +125,40 @@ def default_thumb_text(topic: str) -> str:
     return " ".join(words)
 
 
-def _query_from_sentence(sentence: str, topic: str) -> str:
-    """Procura o primeiro nome próprio (ex.: 'Segunda Guerra Mundial') no meio da frase."""
-    tokens = sentence.split()
+def proper_noun_runs(sentence: str) -> list[str]:
+    """Nomes próprios no meio da frase (ex.: 'Segunda Guerra Mundial'), na ordem em que aparecem."""
+    runs: list[str] = []
     run: list[str] = []
-    for idx, tok in enumerate(tokens):
+    for idx, tok in enumerate(sentence.split()):
         core = tok.strip(".,;:!?\"“”()")
-        if idx > 0 and core[:1].isupper() and core.isalpha() and len(core) > 2:
+        if idx > 0 and core[:1].isupper() and core.isalpha() and len(core) > 2 and len(run) < 3:
             run.append(core)
-            if len(run) == 3:
-                break
-        elif run:
-            break
-    return " ".join(run) if run else topic
+        else:
+            if run:
+                runs.append(" ".join(run))
+            run = [core] if (idx > 0 and core[:1].isupper() and core.isalpha() and len(core) > 2) else []
+    if run:
+        runs.append(" ".join(run))
+    return runs
+
+
+def _query_from_sentence(sentence: str, topic: str) -> str:
+    runs = proper_noun_runs(sentence)
+    return runs[0] if runs else topic
+
+
+def query_candidates(scene_query: str, text: str, topic: str) -> list[str]:
+    """Buscas de imagem para uma cena, da mais específica para a mais geral (sem repetir)."""
+    qs = [scene_query] if scene_query else []
+    qs += proper_noun_runs(text)
+    qs.append(topic)
+    seen, out = set(), []
+    for q in qs:
+        k = q.lower().strip()
+        if k and k not in seen:
+            seen.add(k)
+            out.append(q.strip())
+    return out
 
 
 # --------------------------------------------------------------------------- Wikipédia (grátis, sem chave)
@@ -182,8 +203,10 @@ def wikipedia_script(topic: str, minutes: float, log=print, cancel: CancelToken 
         extract = next(iter(pages.values())).get("extract", "")
         paras = []
         for line in extract.split("\n"):
-            line = re.sub(r"\[\d+\]", "", line)
-            line = re.sub(r"\s*\([^)]{0,80}\)", "", line)
+            line = re.sub(r"\[[^\]]*\]", "", line)
+            for _ in range(4):  # remove (...) mesmo aninhados ou longos (pronúncia, datas, etc.)
+                line = re.sub(r"\s*\([^()]*\)", "", line)
+            line = re.sub(r"[()]", "", line)
             line = re.sub(r"\s+", " ", line).strip()
             if len(line) > 60 and line[-1] in ".!?":
                 paras.append(line)

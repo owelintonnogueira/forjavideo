@@ -6,10 +6,10 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import render, scriptgen, thumbs, tts
+from . import align, render, scriptgen, thumbs, tts
 from .media import ImageProvider
 from .scriptgen import Script
-from .util import CancelToken, audio_duration, slugify
+from .util import CancelToken, slugify
 
 
 @dataclass
@@ -23,6 +23,17 @@ class Result:
 
 def _noop(*a, **k):
     pass
+
+
+def _pct(rate: str) -> int:
+    try:
+        return int(str(rate).replace("%", "").replace("+", "").strip() or 0)
+    except ValueError:
+        return 0
+
+
+def _combine_rate(user_rate: str, pace_rate: str) -> str:
+    return f"{_pct(user_rate) + _pct(pace_rate):+d}%"
 
 
 def new_project_folder(cfg: dict, topic: str) -> Path:
@@ -66,6 +77,13 @@ def produce(
     shade = work / "shade.png"
     render.make_shade(w, h, shade)
 
+    pace = cfg.get("pace", "dynamic")
+    if pace not in render.PACES:
+        pace = "dynamic"
+    if cfg.get("tts_engine", "edge") == "edge":  # o ritmo também ajusta a velocidade da voz
+        cfg = dict(cfg)
+        cfg["edge_rate"] = _combine_rate(cfg.get("edge_rate", "+0%"), render.PACES[pace]["rate"])
+
     n = len(script.scenes)
     scene_files: list[Path] = []
     total_dur = 0.0
@@ -74,19 +92,24 @@ def produce(
         base = 0.04 + 0.86 * i / n
         span = 0.86 / n
         progress(base, f"Cena {i + 1}/{n}: narração…")
-        audio = tts.synthesize(sc.text, work / f"voz_{i:03d}", cfg)
-        adur = audio_duration(audio)
+        audio, entries = tts.synthesize_timed(sc.text, work / f"voz_{i:03d}", cfg)
+        timing = align.analyze(audio, sc.text, entries)
+        plan = render.plan_scene(sc.kind, timing, pace)
 
-        image = None
+        images: list[Path] = []
         if sc.kind != "impact":
-            progress(base + span * 0.3, f"Cena {i + 1}/{n}: imagem…")
-            image = provider.get(sc.query or (script.title or topic), seed=i + 1, fallback=script.title or topic)
-            if not image.name.startswith("bg_"):
-                result.backgrounds.append(image)
+            progress(base + span * 0.3, f"Cena {i + 1}/{n}: imagens…")
+            queries = scriptgen.query_candidates(sc.query, sc.text, script.title or topic)
+            images = provider.get_many(queries, plan.shots, seed=i + 1)
+            for img in images:
+                if not img.name.startswith("bg_") and img not in result.backgrounds:
+                    result.backgrounds.append(img)
 
         progress(base + span * 0.5, f"Cena {i + 1}/{n}: montando…")
         out = work / f"cena_{i:03d}.mp4"
-        total_dur += render.render_scene(i, sc.text, sc.kind, image, audio, adur, work, w, h, shade, out, cancel)
+        total_dur += render.render_scene(
+            i, sc.text, sc.kind, plan, images, audio, timing, work, w, h, shade, out, pace, cancel
+        )
         scene_files.append(out)
 
     # 3) vídeo final --------------------------------------------------------------
@@ -106,7 +129,9 @@ def produce(
     if cfg.get("make_thumbs", True):
         progress(0.97, "Criando thumbnails…")
         text = (cfg.get("thumb_text") or script.thumb_text or scriptgen.default_thumb_text(script.title or topic)).strip()
-        result.thumbnails = thumbs.make_thumbnails(text, result.backgrounds, folder)
+        result.thumbnails = thumbs.make_thumbnails(
+            text, result.backgrounds, folder, vertical=(cfg.get("format") == "vertical")
+        )
 
     # 5) créditos -----------------------------------------------------------------
     credits = list(dict.fromkeys(script.credits + provider.credits))
@@ -119,5 +144,7 @@ def produce(
     return result
 
 
-def thumbnails_only(text: str, backgrounds: list[Path], out_dir: Path, styles: list[str] | None = None) -> list[Path]:
-    return thumbs.make_thumbnails(text, backgrounds, Path(out_dir), styles)
+def thumbnails_only(
+    text: str, backgrounds: list[Path], out_dir: Path, styles: list[str] | None = None, vertical: bool = False
+) -> list[Path]:
+    return thumbs.make_thumbnails(text, backgrounds, Path(out_dir), styles, vertical=vertical)

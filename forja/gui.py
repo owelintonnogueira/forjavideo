@@ -13,7 +13,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from PIL import Image, ImageTk
 
-from . import config, media, pipeline, scriptgen, thumbs, tts
+from . import config, media, pipeline, render, scriptgen, thumbs, tts
 from .theme import THEMES
 from .util import CancelToken, Cancelled
 
@@ -393,7 +393,7 @@ class App(tk.Tk):
         page.rowconfigure(0, weight=1)
         v = self.v
         for name in (
-            "topic", "thumb_text", "minutes", "format", "resolution", "script_source", "tts_engine",
+            "topic", "thumb_text", "minutes", "format", "resolution", "pace", "script_source", "tts_engine",
             "image_source", "music_file", "status",
         ):
             v[name] = tk.StringVar()
@@ -410,6 +410,7 @@ class App(tk.Tk):
         self.row(left, 4, "Duração (min)", lambda: self.combo(left, v["minutes"], MINUTES, 10, readonly=False))
         self.row(left, 5, "Formato", lambda: self.combo(left, v["format"], list(FORMATS.values()), 32))
         self.row(left, 6, "Qualidade", lambda: self.combo(left, v["resolution"], list(RESOLUTIONS.values()), 32))
+        self.row(left, 11, "Ritmo da edição", lambda: self.combo(left, v["pace"], [p["label"] for p in render.PACES.values()], 32))
         self.row(left, 7, "Roteiro", lambda: self.combo(left, v["script_source"], list(SCRIPT_SOURCES.values()), 32))
         self.row(left, 8, "Narração", lambda: self.combo(left, v["tts_engine"], list(tts.ENGINES.values()), 32))
         self.row(left, 9, "Imagens", lambda: self.combo(left, v["image_source"], list(media.SOURCES.values()), 32))
@@ -455,8 +456,10 @@ class App(tk.Tk):
         self.cancel_btn = self.button(act, "Cancelar", self.on_cancel)
         self.cancel_btn.grid(row=0, column=1, padx=8)
         self.cancel_btn.configure(state="disabled")
+        self.open_video_btn = self.button(act, "Abrir vídeo", self.on_open_video)
+        self.open_video_btn.grid(row=0, column=3, sticky="e", padx=(0, 8))
         self.open_btn = self.button(act, "Abrir pasta", self.on_open_folder)
-        self.open_btn.grid(row=0, column=3, sticky="e")
+        self.open_btn.grid(row=0, column=4, sticky="e")
 
         pb = ttk.Progressbar(right, variable=v["progress"], maximum=1.0, style="Forja.Horizontal.TProgressbar")
         pb.grid(row=4, column=0, sticky="ew", pady=(2, 2))
@@ -474,19 +477,21 @@ class App(tk.Tk):
         v = self.v
         v["tt_text"] = tk.StringVar()
         v["tt_bg"] = tk.StringVar()
+        v["tt_format"] = tk.StringVar()
         page.columnconfigure(0, weight=1)
         card = self.card(page)
         card.grid(row=0, column=0, sticky="ew", padx=22, pady=(22, 10))
         card.columnconfigure(1, weight=1)
         self.label(card, "Gerar thumbnails", "h2", size=14, bold=True).grid(row=0, column=0, columnspan=2, sticky="w", padx=14, pady=(14, 4))
         self.row(card, 1, "Texto (curto!)", lambda: self.entry(card, v["tt_text"], 50), "Ex.: JAPÃO RENASCEU — 2 a 4 palavras funcionam melhor")
+        self.row(card, 3, "Formato", lambda: self.combo(card, v["tt_format"], list(FORMATS.values()), 40))
         bgrow = self.frame(card, "panel")
         bgrow.columnconfigure(0, weight=1)
         self.entry(bgrow, v["tt_bg"], 40).grid(row=0, column=0, sticky="ew")
         self.button(bgrow, "Escolher…", self._pick_thumb_bg).grid(row=0, column=1, padx=(6, 0))
-        self.row(card, 3, "Imagem de fundo", lambda: bgrow, "Vazio = usa as imagens do último vídeo, ou um fundo laranja/preto")
+        self.row(card, 4, "Imagem de fundo", lambda: bgrow, "Vazio = usa as imagens do último vídeo, ou um fundo laranja/preto")
         btns = self.frame(card, "panel")
-        btns.grid(row=5, column=0, columnspan=2, sticky="w", padx=14, pady=(10, 14))
+        btns.grid(row=6, column=0, columnspan=2, sticky="w", padx=14, pady=(10, 14))
         self.button(btns, "GERAR 3 THUMBNAILS", self.on_make_thumbs, primary=True).pack(side="left")
         self.button(btns, "Abrir pasta", self._open_thumb_folder).pack(side="left", padx=8)
 
@@ -602,6 +607,7 @@ class App(tk.Tk):
         v["minutes"].set(str(c.get("minutes", 3)))
         v["format"].set(FORMATS.get(c.get("format"), FORMATS["horizontal"]))
         v["resolution"].set(RESOLUTIONS.get(c.get("resolution"), RESOLUTIONS["720p"]))
+        v["pace"].set(render.PACES.get(c.get("pace"), render.PACES["dynamic"])["label"])
         v["script_source"].set(SCRIPT_SOURCES.get(c.get("script_source"), SCRIPT_SOURCES["auto"]))
         v["tts_engine"].set(tts.ENGINES.get(c.get("tts_engine"), tts.ENGINES["edge"]))
         v["image_source"].set(media.SOURCES.get(c.get("image_source"), media.SOURCES["commons"]))
@@ -616,6 +622,7 @@ class App(tk.Tk):
         rate = c.get("edge_rate", "+0%")
         v["edge_rate"].set(f"{rate}  {EDGE_RATES.get(rate, '')}".strip())
         v["tt_text"].set("")
+        v["tt_format"].set(FORMATS.get(c.get("format"), FORMATS["horizontal"]))
 
     def collect_cfg(self) -> dict:
         v, c = self.v, self.cfg
@@ -626,6 +633,7 @@ class App(tk.Tk):
         c["minutes"] = max(0.5, min(minutes, 30))
         c["thumb_text"] = v["thumb_text"].get().strip()
         c["format"] = key_of(FORMATS, v["format"].get(), "horizontal")
+        c["pace"] = next((k for k, p in render.PACES.items() if p["label"] == v["pace"].get()), "dynamic")
         c["resolution"] = key_of(RESOLUTIONS, v["resolution"].get(), "720p")
         c["script_source"] = key_of(SCRIPT_SOURCES, v["script_source"].get(), "auto")
         c["tts_engine"] = key_of(tts.ENGINES, v["tts_engine"].get(), "edge")
@@ -839,6 +847,12 @@ class App(tk.Tk):
             self.cancel_token.cancel()
             self.v["status"].set("Cancelando…")
 
+    def on_open_video(self) -> None:
+        if self.last_result and self.last_result.video and Path(self.last_result.video).exists():
+            open_path(self.last_result.video)
+        else:
+            messagebox.showinfo("Abrir vídeo", "Ainda não há vídeo pronto nesta sessão. Use “Abrir pasta” para ver os vídeos antigos.")
+
     def on_open_folder(self) -> None:
         if self.last_result:
             open_path(self.last_result.folder)
@@ -860,13 +874,14 @@ class App(tk.Tk):
         elif self.last_result and self.last_result.backgrounds:
             bgs = list(self.last_result.backgrounds[:3])
         out_dir = Path(cfg["output_dir"]) / "Thumbnails" / time.strftime("%Y%m%d-%H%M%S")
+        vertical = key_of(FORMATS, self.v["tt_format"].get(), "horizontal") == "vertical"
         try:
-            paths = pipeline.thumbnails_only(text, bgs, out_dir)
+            paths = pipeline.thumbnails_only(text, bgs, out_dir, vertical=vertical)
         except Exception as e:
             messagebox.showerror("Erro", str(e))
             return
         self._thumb_folder = out_dir
-        self._show_thumbs(self.thumb_page_strip, paths, 300)
+        self._show_thumbs(self.thumb_page_strip, paths, 300, 340)
 
     def _open_thumb_folder(self) -> None:
         target = self._thumb_folder or (Path(self.cfg["output_dir"]) / "Thumbnails")
@@ -885,13 +900,13 @@ class App(tk.Tk):
         except tk.TclError:
             return False
 
-    def _show_thumbs(self, frame: tk.Frame, paths: list[Path], width: int) -> None:
+    def _show_thumbs(self, frame: tk.Frame, paths: list[Path], width: int, max_h: int) -> None:
         self._clear(frame)
         self._photos[str(frame)] = []
         for i, p in enumerate(paths):
             try:
                 im = Image.open(p)
-                im.thumbnail((width, int(width * 9 / 16)))
+                im.thumbnail((width, max_h))
                 ph = ImageTk.PhotoImage(im)
             except Exception:
                 continue
@@ -942,7 +957,7 @@ class App(tk.Tk):
             self.last_result = data
             self._log(f"Vídeo salvo em: {data.video}")
             if data.thumbnails:
-                self._show_thumbs(self.thumb_strip, data.thumbnails, 165)
+                self._show_thumbs(self.thumb_strip, data.thumbnails, 165, 200)
             v["status"].set("Pronto!")
         elif kind == "cancelled":
             self.worker = None

@@ -53,7 +53,7 @@ O Japão saiu da guerra com as cidades destruídas...
 
 ## O que sai na pasta do projeto
 
-`<titulo>.mp4` · `thumbnail_1_impacto.jpg`, `thumbnail_2_centro.jpg`, `thumbnail_3_dividido.jpg` (1280×720) ·
+`<titulo>.mp4` · `thumbnail_1_impacto_*.jpg`, `thumbnail_2_centro_*.jpg`, `thumbnail_3_dividido_*.jpg` (1280×720 no horizontal, 1080×1920 no vertical) ·
 `roteiro.txt` · `imagens/` · `creditos.txt` (**cole na descrição**: autores e licenças das imagens/textos usados).
 
 ## Cuidados
@@ -76,7 +76,13 @@ forja/tts.py            narração (Edge, Windows, Piper, ElevenLabs)
 forja/media.py          imagens (Commons, Pexels, pasta, fundos gerados)
 forja/render.py         ffmpeg: zoom, legendas, cartões, música
 forja/thumbs.py         thumbnails
+forja/align.py          tempo exato de cada palavra (legenda sincronizada)
 tests/                  testes (smoke_test.py roda offline)
 ```
 
 Fonte Poppins: SIL Open Font License 1.1.
+
+
+## Edição dinâmica (v1.0.1)
+- **Ritmo da edição** (tela principal): *Calmo* (imagem nova a cada ~4 s), *Dinâmico* (~2,5 s, padrão) ou *Acelerado* (~1,8 s). Cada cena é cortada em vários planos, com zoom/movimento diferente e transições entre eles; os cortes caem no início de uma palavra.
+- **Legenda palavra por palavra**: o tempo de cada palavra vem da própria voz (Edge TTS e ElevenLabs) ou, nos outros motores, é medido no áudio; a palavra falada fica em laranja. O silêncio no começo e no fim de cada cena é cortado.

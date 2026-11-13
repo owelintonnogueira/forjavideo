@@ -132,6 +132,13 @@ def run_selftest(outdir: str) -> int:
         app.on_produce()
         result = wait_for_production(app, result, boxes)
         log(f"vídeo vertical ok: {result.video.name}")
+        from PIL import Image as _Img
+
+        for tp in result.thumbnails:
+            with _Img.open(tp) as im:
+                if im.height <= im.width:
+                    raise RuntimeError(f"thumbnail {tp.name} deveria ser vertical, veio {im.size}")
+        log("thumbnails verticais ok")
 
         v["tt_text"].set("TESTE")
         app.on_make_thumbs()

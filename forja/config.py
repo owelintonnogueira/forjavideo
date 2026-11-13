@@ -33,6 +33,7 @@ DEFAULTS: dict = {
     "format": "horizontal",  # horizontal | vertical
     "resolution": "720p",  # 720p | 1080p
     "minutes": 3,
+    "pace": "dynamic",  # calm | dynamic | fast
     "music_file": "",
     "music_volume": 0.12,
     "make_thumbs": True,
