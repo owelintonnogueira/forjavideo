@@ -72,7 +72,7 @@ def run_selftest(outdir: str) -> int:
 
         tmp = Path(tempfile.mkdtemp(prefix="forja_selftest_"))
         app = gui.App()
-        app.geometry("1300x840+0+0")
+        app.geometry("+0+0")
         app.update()
         log("janela criada")
 

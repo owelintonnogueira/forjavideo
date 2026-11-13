@@ -57,8 +57,13 @@ class App(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("ForjaVideo — gerador de vídeos e thumbnails")
-        self.geometry("1300x840")
-        self.minsize(1120, 720)
+        try:
+            sw, sh = int(self.winfo_screenwidth()), int(self.winfo_screenheight())
+        except (TypeError, ValueError, tk.TclError):
+            sw, sh = 1920, 1080
+        w, h = min(1300, sw - 60), min(840, sh - 120)  # cabe até em telas 1366x768
+        self.geometry(f"{w}x{h}+{max(0, (sw - w) // 2)}+{max(0, (sh - h) // 2 - 20)}")
+        self.minsize(min(1000, w), min(600, h))
 
         self.cfg = config.load()
         self.T = THEMES.get(self.cfg.get("theme", "dark"), THEMES["dark"])
