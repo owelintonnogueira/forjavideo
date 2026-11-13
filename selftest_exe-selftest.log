@@ -1,0 +1,18 @@
+21:01:47 python 3.12.10 | frozen=True
+21:01:47 ffmpeg: C:\Users\RUNNER~1\AppData\Local\Temp\_MEI0000235c2\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v9.0.2.exe
+21:01:47 fonte: C:\Users\RUNNER~1\AppData\Local\Temp\_MEI0000235c2\assets\fonts\Poppins-Bold.ttf
+21:01:47 janela criada
+21:01:48 captura dark_create.png (964x648)
+21:01:48 captura dark_thumbs.png (964x648)
+21:01:49 captura dark_settings.png (964x648)
+21:01:49 captura light_create.png (964x648)
+21:01:50 captura light_thumbs.png (964x648)
+21:01:50 captura light_settings.png (964x648)
+21:01:50 temas e páginas ok
+21:01:57 vídeo: autoteste-do-forjavideo.mp4 | 11.7s | 806 KB
+21:01:57 thumbnails: thumbnail_1_impacto_horizontal.jpg, thumbnail_2_centro_horizontal.jpg, thumbnail_3_dividido_horizontal.jpg
+21:01:57 captura producao_concluida.png (964x648)
+21:02:04 vídeo vertical ok: autoteste-do-forjavideo.mp4
+21:02:04 thumbnails verticais ok
+21:02:05 thumbnails avulsas ok
+21:02:05 AUTOTESTE OK
